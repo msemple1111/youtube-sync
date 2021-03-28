@@ -5,6 +5,7 @@ class PlaylistSync:
         this.ffmpegArgs = "-n"
         this.path = os.getcwd()
         this.blacklist = blacklist
+        this.failed = []
 
     def get_vid_stream(link, i):
         try:
@@ -27,6 +28,9 @@ class PlaylistSync:
         new_links = to_download - downloaded - blacklist_urls
         # new_streams = pool.map(get_vid_stream, new_links)
         return new_links
+
+    def find_vid_id(path):
+
 
 
 def main():

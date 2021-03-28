@@ -134,7 +134,7 @@ def download_stream(s):
     (stream, i, title, link, id) = s
     if (stream == None):
         return
-    elif (i == '140'):
+    elif (i == '140'): # mp4 format
         download_mp4_from_link(link)
         fName = title
     else:
@@ -175,8 +175,14 @@ def download_stream(s):
 
 
 def convert_tomp3(from_format, newFName, oFName):
-    subprocess.call(f'ffmpeg -i "{path}/{oFName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3"', shell=True)
-    os.system(f'rm "{path}/{oFName}.{from_format}"')
+    cmd = f'ffmpeg -i "{path}/{oFName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3" && rm "{path}/{oFName}.{from_format}"'
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        stderr = stderr.decode('utf-8', 'replace')
+        msg = stderr.strip().split('\n')[-1]
+        failed.append({"error":msg})
+
 
 
 def main():
@@ -184,7 +190,7 @@ def main():
     print("finding new vids")
     new_links = find_new_video_links(pool)
     print(f"got {len(new_links)} new video links, downloading now")
-    # pool.map(download_mp3_from_link, new_links)
+    pool.map(download_mp3_from_link, new_links)
     print("done")
     pool.close()
     print("bye!")
@@ -195,10 +201,12 @@ def print_errors():
         x = failed[i]
         if (x.get('split') != None):
             print(f"number {i}      error is {x['error']}      spilt failed on {x['split']}       name = {x['name']}")
-        if (x.get('s') != None):
+        elif (x.get('s') != None):
             print(f"number {i}      error is {x['error']}      download failed on {x['s']}")
-        if (x.get('link') != None):
+        elif (x.get('link') != None):
             print(f"number {i}      error is {x['error']}      get stream failed on {x['link']}")
+        else:
+            print(f"number {i}      error is {x['error']} ")
 if __name__ == '__main__':
     try:
         main()
