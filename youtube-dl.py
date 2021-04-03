@@ -6,6 +6,7 @@ from random import randint
 from youtube_dl import YoutubeDL
 import asyncio
 import subprocess
+import time
 
 
 itags = ['251', '140']
@@ -42,7 +43,7 @@ def split_vid_name(name):
             if (t):
                 return s
             else:
-                failed.append({"error":"soundcloud link", "name":name, "split":v})
+                # failed.append({"error":"soundcloud link", "name":name, "split":v})
                 return False
         else:
             t, s = add_split_vid_name(v[-2], v[-1])
@@ -171,17 +172,38 @@ def download_stream(s):
         oFName = f"{oFName}-{id}"
         # subprocess.call(f'ffmpeg -i "{path}/{oFName}.m4a" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3"', shell=True)
         # os.system(f'rm "{path}/{oFName}.m4a"')
-        convert_tomp3('m4a', newFName, oFName)
+        # convert_tomp3('m4a', newFName, oFName)
 
 
-def convert_tomp3(from_format, newFName, oFName):
-    cmd = f'ffmpeg -i "{path}/{oFName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3" && rm "{path}/{oFName}.{from_format}"'
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    if process.returncode != 0:
-        stderr = stderr.decode('utf-8', 'replace')
-        msg = stderr.strip().split('\n')[-1]
-        failed.append({"error":msg})
+def convert_tomp3(from_format, newFName, oFName, retry = True):
+    try:
+        cmd = f'ffmpeg -i "{path}/{oFName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3" && rm "{path}/{oFName}.{from_format}"'
+        subprocess.call(cmd, shell=True)
+        #process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        #stdout, stderr = process.communicate()
+        #if process.returncode != 0:
+        #    stderr = stderr.decode('utf-8', 'replace')
+        #    msg = stderr.strip().split('\n')[-1]
+        #    failed.append({"error":msg})
+    except FileNotFoundError as err:
+        if (retry):
+            time.sleep(2)
+            convert_tomp3(from_format, newFName, oFName, False)
+        else:
+            failed.append({"error":err+msg,})
+
+
+def convert_tom4a(from_format, newFName, oFName, retry = True):
+    try:
+        cmd = f'ffmpeg -i "{path}/{oFName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {ffmpegArgs} "{path}/{newFName}.mp3" && rm "{path}/{oFName}.{from_format}"'
+        subprocess.call(cmd, shell=True)
+    except FileNotFoundError as err:
+        if (retry):
+            time.sleep(2)
+            convert_tomp3(from_format, newFName, oFName, False)
+        else:
+            failed.append({"error":err+msg,})
+
 
 
 
@@ -190,7 +212,7 @@ def main():
     print("finding new vids")
     new_links = find_new_video_links(pool)
     print(f"got {len(new_links)} new video links, downloading now")
-    pool.map(download_mp3_from_link, new_links)
+    pool.map(download_mp4_from_link, new_links)
     print("done")
     pool.close()
     print("bye!")
