@@ -212,7 +212,7 @@ def main():
     print("finding new vids")
     new_links = find_new_video_links(pool)
     print(f"got {len(new_links)} new video links, downloading now")
-    pool.map(download_mp4_from_link, new_links)
+    pool.map(download_mp3_from_link, new_links)
     print("done")
     pool.close()
     print("bye!")
