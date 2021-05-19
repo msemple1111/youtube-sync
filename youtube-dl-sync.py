@@ -23,19 +23,17 @@ class PlaylistSync:
         self.itagFormat = {'251': "webm"}
         self.downloaded_links = self.get_downloaded_links()
 
-
-
     async def download_pytube_stream(self, s, convert=None):
         stream = s["stream"]
         if (stream == None):
             return
         print("downloading", s['title'])
-        # try:
-        await stream.download(filename=s['title'], output_path=self.path)
-        # except Exception as e:
-        #     print(e)
-        #     self.failed.append({"error":e, "s":s})
-        #     return
+        try:
+            await stream.download(filename=s['title'], output_path=self.path)
+        except Exception as e:
+            print(e)
+            self.failed.append({"error":e, "s":s})
+            return
         print("done downloading", s['title'])
         if (convert != None):
             print("     converting:", s['title'])
@@ -49,26 +47,6 @@ class PlaylistSync:
         from_format = self.itagFormat[s['itag']]
         path = self.path
         return (fName, fName_id, path, from_format)
-
-    def convert_tomp3(self, s, retrys = 3):
-        print("start convert")
-        fName, fName_id, path, from_format = s
-        msg = ""
-        try: # subprocess.call(cmd, shell=True)
-            cmd = f'ffmpeg -i "{path}/{fName}.{from_format}" -codec:a libmp3lame -qscale:a 0 {self.ffmpegArgs} "{path}/{fName_id}.mp3" && rm "{path}/{fName}.{from_format}"'
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
-            stdout, stderr = process.communicate()
-            if process.returncode != 0:
-                stderr = stderr.decode('utf-8', 'replace')
-                msg = stderr.strip().split('\n')[-1]
-                self.failed.append({"error":msg})
-            print("end convert")
-        except FileNotFoundError as err:
-            if (retrys >= 0):
-                time.sleep(2)
-                self.convert_tomp3(s, retrys-1)
-            else:
-                self.failed.append({"error":str(err)+str(msg)})
 
     async def convert_tomp3_async(self, s, retrys = 3):
         stream = s["stream"]
@@ -97,10 +75,6 @@ class PlaylistSync:
                 self.failed.append({"error":str(err)+str(msg)})
         print("done Convert, moving")
 
-    async def get_youtube_playlist_vid_urls(self):
-        p = Playlist(self.ytPlaylistUrl, session=self._session)
-        return await p.video_urls
-
     def get_downloaded_vid_ids(self):
         downloaded_vid_names = os.listdir(self.path)
         vid_ids = list(filter(lambda x: x!=False, map(self.split_vid_name, downloaded_vid_names)))
@@ -110,13 +84,6 @@ class PlaylistSync:
         blacklist_urls = list(map(lambda x: Playlist._video_url(f"/watch?v={x}"), self.blacklist))
         downloaded = self.get_downloaded_vid_ids()
         return blacklist_urls + downloaded
-
-    async def find_new_video_links(self):
-        blacklist_urls = map(lambda x: Playlist._video_url(f"/watch?v={x}"), self.blacklist)
-        downloaded = self.get_downloaded_vid_ids()
-        to_download = await self.get_youtube_playlist_vid_urls()
-        new_links = set(to_download) - set(downloaded) - set(blacklist_urls)
-        return new_links
 
     async def get_vid_stream(self, link, itag, alterITag = '140'):
         itag = str(itag)
@@ -193,17 +160,6 @@ class PlaylistSync:
                 self.failed.append({"error":e, "name":name, "split":v})
                 return False
 
-    # def download_pool(self):
-    #     self.pool = ThreadPool(processes=threadCount)
-    #     try:
-    #         new_links = await self.find_new_video_links()
-    #         self.pool.map(self.download_mp3_from_link, new_links)
-    #         self.pool.close()
-    #     except KeyboardInterrupt:
-    #         print("\n\n Early Exit")
-    #     finally:
-    #         self.print_errors()
-
     async def download_mp3_from_link(self, link):
         print("get stream")
         s = await self.get_vid_stream(link, self.ytFormats['mp3'])
@@ -268,8 +224,8 @@ class PlaylistSync:
                     p_task = pool.apply_async(convert_func, args = (self.unpack_stream(stream), self.failed ))
                     self.converting_tasks.append(p_task)
 
-ffmpegArgs = "-n"
 def convert_tomp3(s, failed, retrys = 3):
+    ffmpegArgs = "-n"
     print("start convert")
     fName, fName_id, path, from_format = s
     msg = ""
@@ -291,13 +247,11 @@ def convert_tomp3(s, failed, retrys = 3):
 def main():
     blacklist = ['KPl9jmmt3Ps', 'rHzpkqpnGLQ', '9_Ql1EmrzZE', '8kuNwhfpwKM', 'cI7LdJeNOz4', 'O4Se-Q2VOOU']
     playlist_url = "https://www.youtube.com/playlist?list=PL6Pqa2e9AspE6lbr24yQpLWI1wVFY7o5H"
+    # playlist_url = "https://www.youtube.com/playlist?list=PLI2omNcnpT1OMrKugA6BAFh021kLo3QHA" #baby
 
     sync = PlaylistSync(playlist_url, blacklist)
     sync.download(convert_tomp3)
 
-
-        # loop.close()
-        # pool.shutdown()
     # link = "https://www.youtube.com/watch?v=9Xnqa1kMvWI" #tst link
 
 if __name__ == '__main__':
