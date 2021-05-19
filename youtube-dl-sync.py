@@ -5,10 +5,11 @@ from pytube import YouTube, Playlist, exceptions, request
 import time
 import asyncio
 from aiohttp import ClientSession, TCPConnector
-import concurrent
+# import concurrent
 
-# import ssl
-# import certifi
+
+playlist_url = "https://www.youtube.com/playlist?list=PL6Pqa2e9AspE6lbr24yQpLWI1wVFY7o5H"
+
 
 class PlaylistSync:
     def __init__(self, ytPlaylistUrl, blacklist=[], threadCount=8, downloadCount=4):
@@ -245,9 +246,9 @@ def convert_tomp3(s, failed, retrys = 3):
             failed.append({"error":str(err)+str(msg)})
 
 def main():
-    blacklist = ['KPl9jmmt3Ps', 'rHzpkqpnGLQ', '9_Ql1EmrzZE', '8kuNwhfpwKM', 'cI7LdJeNOz4', 'O4Se-Q2VOOU']
-    playlist_url = "https://www.youtube.com/playlist?list=PL6Pqa2e9AspE6lbr24yQpLWI1wVFY7o5H"
-    # playlist_url = "https://www.youtube.com/playlist?list=PLI2omNcnpT1OMrKugA6BAFh021kLo3QHA" #baby
+    #blacklist = ['KPl9jmmt3Ps', 'rHzpkqpnGLQ', '9_Ql1EmrzZE', '8kuNwhfpwKM', 'cI7LdJeNOz4', 'O4Se-Q2VOOU']
+    blacklist = []
+    # playlist_url = "https://www.youtube.com/playlist?list=PLI2omNcnpT1OMrKugA6BAFh021kLo3QHA"
 
     sync = PlaylistSync(playlist_url, blacklist)
     sync.download(convert_tomp3)
